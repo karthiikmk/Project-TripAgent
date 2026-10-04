@@ -4,18 +4,21 @@ data class GoogleUserProfile(
     val email: String = "mkkarthiik@gmail.com",
     val displayName: String = "Karthiik",
     val photoUrl: String = "",
-    val isLoggedIn: Boolean = true
+    val isLoggedIn: Boolean = true,
+    val hasCompletedVehicleSetup: Boolean = true
 )
 
 data class CarDetails(
-    val makeModel: String = "Hyundai i20 N Line",
-    val variant: String = "N8 1.0 Turbo GDi DCT",
-    val registrationNumber: String = "TN 07 CM 4521",
-    val tyreSpecification: String = "195/55 R16 Low-Profile Alloys",
-    val recommendedPsi: String = "33-35 PSI Cold",
-    val hasConnectedCarBluelink: Boolean = true,
-    val fastagProvider: String = "Active FASTag (ICICI Bank)",
-    val fuelType: String = "Turbo Petrol (95 Octane)"
+    val makeModel: String = "Tata Nexon",
+    val variant: String = "Fearless+ 1.2 Turbo",
+    val registrationNumber: String = "KA 01 AB 1234",
+    val tyreSpecification: String = "215/60 R16 Alloys",
+    val recommendedPsi: String = "32-34 PSI Cold",
+    val hasConnectedCarBluelink: Boolean = false,
+    val fastagProvider: String = "FASTag Active",
+    val fuelType: String = "Petrol / Diesel",
+    val oemRsaPhone: String = "1800 209 8282",
+    val sosButtonInstruction: String = "Roof console SOS assist switch • Tata 24x7 RSA: 1800 209 8282 • NHAI: 1033"
 )
 
 enum class AppThemeMode {

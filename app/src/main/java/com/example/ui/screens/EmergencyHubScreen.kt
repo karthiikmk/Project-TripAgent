@@ -33,6 +33,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,27 +42,40 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.components.BluelinkMirrorWidget
 import com.example.ui.components.EmergencyQuickCallList
 import com.example.ui.theme.HighwayGreen
 import com.example.ui.theme.NLineRedAccent
+import com.example.ui.viewmodel.RouteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmergencyHubScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: RouteViewModel? = null
 ) {
     val context = LocalContext.current
+    val carDetails = viewModel?.carDetails?.collectAsState()?.value
+    val vehicleName = carDetails?.makeModel ?: "Highway Vehicle"
+    val oemRsa = carDetails?.oemRsaPhone ?: "1800 209 8282"
+    val sosInstruction = carDetails?.sosButtonInstruction ?: "Press in-car SOS assist switch or dial OEM RSA / NHAI 1033"
+    val regNum = carDetails?.registrationNumber ?: "KA 01 AB 1234"
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Emergency & Highway Assistance",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = "Emergency & SOS Hub",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Tailored for $vehicleName ($regNum)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
@@ -84,23 +99,7 @@ fun EmergencyHubScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Mirror widget
-            item {
-                BluelinkMirrorWidget()
-            }
-
-            // Quick Call Dialers
-            item {
-                Text(
-                    text = "One-Tap Highway Helpline Dialers",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                EmergencyQuickCallList()
-            }
-
-            // Bluelink & Tow Protocol Guidance
+            // In-Car Hardware Protocol Banner
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -111,7 +110,7 @@ fun EmergencyHubScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "HYUNDAI BLUELINK TOW & RSA PROTOCOL",
+                            text = "CONSTRUCTED VEHICLE PROTOCOL • ${vehicleName.uppercase()}",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -121,21 +120,35 @@ fun EmergencyHubScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         EmergencyInfoItem(
-                            title = "Hyundai RSA Coverage (1800 102 4645)",
-                            desc = "Free fuel delivery up to 5 litres and flatbed towing to the nearest authorized Hyundai workshop while active subscription is covered. (Not unlimited)."
+                            title = "In-Car Hardware SOS Trigger",
+                            desc = sosInstruction
                         )
 
                         EmergencyInfoItem(
-                            title = "Mirror Buttons With Lapsed Cover",
-                            desc = "Mirror buttons still connect to the Hyundai emergency dispatch desk even if subscription has lapsed; however physical vehicle towing dispatch may be chargeable."
+                            title = "$vehicleName 24x7 RSA Hotline: $oemRsa",
+                            desc = "Direct manufacturer flatbed towing, fuel drop, battery jumpstart, and tyre assistance across Indian National Highways."
                         )
 
                         EmergencyInfoItem(
-                            title = "NHAI 1033 Highway Patrol",
-                            desc = "Dial 1033 anywhere on an Indian National Highway or Expressway for immediate crane tow, debris removal, crash response, and medical ambulance."
+                            title = "NHAI 1033 Pan-India Highway Patrol",
+                            desc = "Dial 1033 anywhere on an Indian Expressway or NH for immediate heavy crane tow, accident extrication, and emergency paramedic ambulance."
                         )
                     }
                 }
+            }
+
+            // Quick Call Dialers
+            item {
+                Text(
+                    text = "One-Tap Highway Helpline Dialers",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                EmergencyQuickCallList(
+                    rsaTitle = "$vehicleName 24x7 Roadside Assistance",
+                    rsaPhone = oemRsa
+                )
             }
 
             // Quick Dispatch SMS share
@@ -146,7 +159,7 @@ fun EmergencyHubScreen(
                             type = "text/plain"
                             putExtra(
                                 Intent.EXTRA_TEXT,
-                                "EMERGENCY HIGHWAY DISPATCH NEEDED: Hyundai i20 N Line breakdown/accident. Please coordinate with 1033 NHAI Highway Patrol and Hyundai RSA (1800 102 4645)."
+                                "EMERGENCY HIGHWAY DISPATCH: $vehicleName ($regNum) breakdown/accident. Please coordinate with 1033 NHAI Patrol and OEM RSA ($oemRsa)."
                             )
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Send Emergency Dispatch"))

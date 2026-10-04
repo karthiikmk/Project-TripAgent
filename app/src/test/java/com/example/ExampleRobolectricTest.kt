@@ -26,7 +26,7 @@ class ExampleRobolectricTest {
     fun `read string from context`() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val appName = context.getString(R.string.app_name)
-        assertEquals("SafeRoute", appName)
+        assertEquals("SafeTrip", appName)
     }
 
     @Test
@@ -106,5 +106,36 @@ class ExampleRobolectricTest {
 
         sessionManager.setThemeMode(AppThemeMode.LIGHT)
         assertEquals(AppThemeMode.LIGHT, sessionManager.themeMode.value)
+
+        sessionManager.signOut()
+        assertEquals(false, sessionManager.userProfile.value.isLoggedIn)
+
+        sessionManager.updateApiKeys("test-gemini-key", "test-claude-key", "test-google-key")
+        assertEquals("test-gemini-key", sessionManager.geminiApiKey.value)
+        assertEquals("test-claude-key", sessionManager.claudeApiKey.value)
+        assertEquals("test-google-key", sessionManager.googlePlacesApiKey.value)
+    }
+
+    @Test
+    fun `verify place autocomplete service returns highway hubs`() = runBlocking {
+        val results = com.example.data.api.PlaceAutocompleteService.searchPlaces("Chennai")
+        assertTrue(results.isNotEmpty())
+        val match = results.find { it.title.contains("Chennai") || it.subtitle.contains("Chennai") }
+        assertNotNull(match)
+    }
+
+    @Test
+    fun `verify extended vehicle database has searchable models`() {
+        val database = com.example.data.vehicles.IndianVehicleDatabase.vehicles
+        assertTrue(database.size >= 15)
+
+        val creta = database.find { it.makeModel.contains("Creta") }
+        assertNotNull(creta)
+        assertEquals("215/60 R17 Diamond Cut", creta!!.tyreSpec)
+        assertEquals("33-35 PSI Cold", creta.recommendedPsi)
+
+        val virtus = database.find { it.makeModel.contains("Virtus") }
+        assertNotNull(virtus)
+        assertEquals("205/55 R16 Razor Alloys", virtus!!.tyreSpec)
     }
 }

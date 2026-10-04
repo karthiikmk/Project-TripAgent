@@ -53,7 +53,25 @@ class RouteRepository(
             userEmail = if (userEmail.isNotBlank()) userEmail else plan.userEmail,
             carModel = if (carModel.isNotBlank()) carModel else plan.carModel
         )
-        return routeDao.insertRoute(updatedPlan.toEntity())
+        val id = routeDao.insertRoute(updatedPlan.toEntity())
+        try {
+            com.example.data.firebase.FirestoreService.saveRouteToCloud(updatedPlan.userEmail, updatedPlan)
+        } catch (_: Exception) {
+            // Graceful fallback to offline local Room storage
+        }
+        return id
+    }
+
+    suspend fun syncRoutesWithCloud(userEmail: String) {
+        if (userEmail.isBlank()) return
+        try {
+            val cloudRoutes = com.example.data.firebase.FirestoreService.fetchCloudRoutes(userEmail)
+            cloudRoutes.forEach { cloudPlan ->
+                routeDao.insertRoute(cloudPlan.toEntity())
+            }
+        } catch (_: Exception) {
+            // Graceful offline fallback
+        }
     }
 
     suspend fun deleteRoute(id: Long) {
@@ -68,20 +86,21 @@ class RouteRepository(
         origin: String,
         destination: String,
         notes: String = "",
-        mode: RoutingEngineMode = RoutingEngineMode.AUTO
+        mode: RoutingEngineMode = RoutingEngineMode.AUTO,
+        algorithmPrompt: String = ""
     ): Result<SafeRoutePlan> {
         return when (mode) {
             RoutingEngineMode.DETERMINISTIC -> {
                 Result.success(HighwayCorridorEngine.resolveSafeRoute(origin, destination))
             }
             RoutingEngineMode.CLAUDE -> {
-                claudeService.generateSafeRoute(origin, destination, notes)
+                claudeService.generateSafeRoute(origin, destination, notes, algorithmPrompt)
             }
             RoutingEngineMode.GEMINI -> {
-                geminiService.generateSafeRoute(origin, destination, notes)
+                geminiService.generateSafeRoute(origin, destination, notes, algorithmPrompt)
             }
             RoutingEngineMode.AUTO -> {
-                geminiService.generateSafeRoute(origin, destination, notes)
+                geminiService.generateSafeRoute(origin, destination, notes, algorithmPrompt)
             }
         }
     }

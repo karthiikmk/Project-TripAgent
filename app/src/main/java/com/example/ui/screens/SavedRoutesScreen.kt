@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.clickable
+import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -59,7 +61,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.SafeRoutePlan
-import com.example.ui.components.GoogleSignInDialog
+import com.example.ui.components.HighwayChipsRow
 import com.example.ui.theme.HighwayGreen
 import com.example.ui.theme.NLineBluePrimary
 import com.example.ui.theme.NLineRedAccent
@@ -76,8 +78,6 @@ fun SavedRoutesScreen(
     val savedRoutes by viewModel.savedRoutes.collectAsState()
     val userProfile by viewModel.userProfile.collectAsState()
     val carDetails by viewModel.carDetails.collectAsState()
-
-    var showSignInDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -105,6 +105,15 @@ fun SavedRoutesScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { viewModel.syncWithCloud() },
+                        modifier = Modifier.testTag("sync_cloud_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudSync,
+                            contentDescription = "Sync Trips"
+                        )
+                    }
                     IconButton(
                         onClick = {
                             val exportText = buildString {
@@ -160,18 +169,29 @@ fun SavedRoutesScreen(
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = if (userProfile.displayName.isNotBlank()) userProfile.displayName.take(1).uppercase() else "G",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
-                                )
+                        if (userProfile.photoUrl.isNotBlank()) {
+                            AsyncImage(
+                                model = userProfile.photoUrl,
+                                contentDescription = "Profile Photo",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = if (userProfile.displayName.isNotBlank()) userProfile.displayName.take(1).uppercase() else "G",
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                }
                             }
                         }
 
@@ -198,7 +218,7 @@ fun SavedRoutesScreen(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Auto-synced with ${carDetails.makeModel}",
+                                    text = "Cloud Sync Active • ${carDetails.makeModel}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = HighwayGreen,
                                     fontWeight = FontWeight.SemiBold
@@ -206,12 +226,17 @@ fun SavedRoutesScreen(
                             }
                         }
 
-                        OutlinedButton(
-                            onClick = { showSignInDialog = true },
+                        Surface(
                             shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                            color = HighwayGreen.copy(alpha = 0.15f)
                         ) {
-                            Text("Switch", fontSize = 11.sp)
+                            Text(
+                                text = "SYNCED",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = HighwayGreen
+                            )
                         }
                     }
                 }
@@ -294,68 +319,11 @@ fun SavedRoutesScreen(
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            Text(
-                                text = route.verifyLine,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(6.dp),
-                                    color = MaterialTheme.colorScheme.surface
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DirectionsCar,
-                                            contentDescription = null,
-                                            tint = NLineRedAccent,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = route.carModel.ifBlank { carDetails.makeModel },
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontSize = 10.sp
-                                        )
-                                    }
-                                }
-
-                                Button(
-                                    onClick = { onNavigateToDetail(route) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                ) {
-                                    Text("View Plan & Maps Link", fontSize = 11.sp)
-                                }
-                            }
+                            HighwayChipsRow(verifyLine = route.verifyLine)
                         }
                     }
                 }
             }
         }
-    }
-
-    if (showSignInDialog) {
-        GoogleSignInDialog(
-            currentUser = userProfile,
-            currentCar = carDetails,
-            onDismiss = { showSignInDialog = false },
-            onSignInSuccess = { email, name, updatedCar ->
-                viewModel.signInWithGoogle(email, name, updatedCar)
-                showSignInDialog = false
-            }
-        )
     }
 }

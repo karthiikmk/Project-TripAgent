@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -30,22 +32,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.example.data.model.AppThemeMode
 import com.example.data.model.SafeRoutePlan
+import com.example.ui.screens.CarDetailsScreen
 import com.example.ui.screens.EmergencyHubScreen
 import com.example.ui.screens.HomeScreen
+import com.example.ui.screens.LoginScreen
 import com.example.ui.screens.RouteDetailScreen
 import com.example.ui.screens.RoutePlannerScreen
 import com.example.ui.screens.SavedRoutesScreen
-import com.example.ui.screens.VehicleChecklistScreen
+import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.VehicleSetupScreen
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.RouteViewModel
 
 enum class AppNavScreen {
     HOME,
     PLANNER,
-    DETAIL,
+    SAVED,
     EMERGENCY,
-    CHECKLIST,
-    SAVED
+    SETTINGS,
+    DETAIL,
+    CAR_DETAILS,
+    VEHICLE_SETUP
 }
 
 class MainActivity : ComponentActivity() {
@@ -66,28 +73,73 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainAppNavHost(viewModel: RouteViewModel) {
-    var currentScreen by remember { mutableStateOf(AppNavScreen.HOME) }
-    var previousScreen by remember { mutableStateOf(AppNavScreen.HOME) }
+    val userProfile by viewModel.userProfile.collectAsState()
+    val navStack = remember { mutableStateListOf(AppNavScreen.HOME) }
+    val currentScreen = navStack.lastOrNull() ?: AppNavScreen.HOME
     var selectedRoutePlan by remember { mutableStateOf<SafeRoutePlan?>(null) }
-    val carDetails by viewModel.carDetails.collectAsState()
 
     fun navigateTo(screen: AppNavScreen) {
-        previousScreen = currentScreen
-        currentScreen = screen
+        if (navStack.lastOrNull() != screen) {
+            navStack.add(screen)
+        }
+    }
+
+    fun navigateBack() {
+        if (navStack.size > 1) {
+            navStack.removeAt(navStack.lastIndex)
+        } else {
+            navStack.clear()
+            navStack.add(AppNavScreen.HOME)
+        }
+    }
+
+    fun switchTab(screen: AppNavScreen) {
+        navStack.clear()
+        navStack.add(screen)
+    }
+
+    // If logged out: take user completely out of the tabs and show the full-screen Google Login page
+    if (!userProfile.isLoggedIn) {
+        LoginScreen(
+            viewModel = viewModel,
+            onLoginSuccess = {
+                // Handled automatically by checking hasCompletedVehicleSetup
+            }
+        )
+        return
+    }
+
+    // Intermediate page after login: search & choose vehicle with auto-constructed SOS
+    if (!userProfile.hasCompletedVehicleSetup) {
+        VehicleSetupScreen(
+            viewModel = viewModel,
+            onSetupComplete = {
+                switchTab(AppNavScreen.HOME)
+            }
+        )
+        return
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            // Only show bottom navigation on primary screens
-            if (currentScreen != AppNavScreen.DETAIL) {
+            // Show bottom navigation on the 5 primary tabs
+            val isPrimaryTab = currentScreen in listOf(
+                AppNavScreen.HOME,
+                AppNavScreen.PLANNER,
+                AppNavScreen.SAVED,
+                AppNavScreen.EMERGENCY,
+                AppNavScreen.SETTINGS
+            )
+            if (isPrimaryTab) {
                 NavigationBar(
                     modifier = Modifier.testTag("main_bottom_nav"),
                     containerColor = MaterialTheme.colorScheme.surface
                 ) {
+                    // 1st Tab: Home / Corridors
                     NavigationBarItem(
                         selected = currentScreen == AppNavScreen.HOME,
-                        onClick = { currentScreen = AppNavScreen.HOME },
+                        onClick = { switchTab(AppNavScreen.HOME) },
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Home,
@@ -98,9 +150,10 @@ fun MainAppNavHost(viewModel: RouteViewModel) {
                         modifier = Modifier.testTag("nav_item_home")
                     )
 
+                    // 2nd Tab: Plan Trip
                     NavigationBarItem(
                         selected = currentScreen == AppNavScreen.PLANNER,
-                        onClick = { currentScreen = AppNavScreen.PLANNER },
+                        onClick = { switchTab(AppNavScreen.PLANNER) },
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Navigation,
@@ -111,9 +164,24 @@ fun MainAppNavHost(viewModel: RouteViewModel) {
                         modifier = Modifier.testTag("nav_item_planner")
                     )
 
+                    // 3rd Tab: Saved ("Saved can be the 3rd tab")
+                    NavigationBarItem(
+                        selected = currentScreen == AppNavScreen.SAVED,
+                        onClick = { switchTab(AppNavScreen.SAVED) },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Bookmark,
+                                contentDescription = "Saved"
+                            )
+                        },
+                        label = { Text("Saved") },
+                        modifier = Modifier.testTag("nav_item_saved")
+                    )
+
+                    // 4th Tab: SOS / Emergency ("SOS can be 4th")
                     NavigationBarItem(
                         selected = currentScreen == AppNavScreen.EMERGENCY,
-                        onClick = { currentScreen = AppNavScreen.EMERGENCY },
+                        onClick = { switchTab(AppNavScreen.EMERGENCY) },
                         icon = {
                             Icon(
                                 imageVector = Icons.Default.Shield,
@@ -124,33 +192,18 @@ fun MainAppNavHost(viewModel: RouteViewModel) {
                         modifier = Modifier.testTag("nav_item_emergency")
                     )
 
+                    // 5th Tab: Settings ("Settings should be 5th")
                     NavigationBarItem(
-                        selected = currentScreen == AppNavScreen.CHECKLIST,
-                        onClick = { currentScreen = AppNavScreen.CHECKLIST },
+                        selected = currentScreen == AppNavScreen.SETTINGS,
+                        onClick = { switchTab(AppNavScreen.SETTINGS) },
                         icon = {
                             Icon(
-                                imageVector = Icons.Default.DirectionsCar,
-                                contentDescription = "My Car"
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings"
                             )
                         },
-                        label = {
-                            val shortName = carDetails.makeModel.split(" ").takeLast(2).joinToString(" ")
-                            Text(if (shortName.length <= 11) shortName else "My Car")
-                        },
-                        modifier = Modifier.testTag("nav_item_checklist")
-                    )
-
-                    NavigationBarItem(
-                        selected = currentScreen == AppNavScreen.SAVED,
-                        onClick = { currentScreen = AppNavScreen.SAVED },
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Bookmark,
-                                contentDescription = "Saved"
-                            )
-                        },
-                        label = { Text("Saved") },
-                        modifier = Modifier.testTag("nav_item_saved")
+                        label = { Text("Settings") },
+                        modifier = Modifier.testTag("nav_item_settings")
                     )
                 }
             }
@@ -160,70 +213,96 @@ fun MainAppNavHost(viewModel: RouteViewModel) {
             AppNavScreen.HOME -> {
                 HomeScreen(
                     viewModel = viewModel,
-                    onNavigateToPlanner = { navigateTo(AppNavScreen.PLANNER) },
+                    onNavigateToPlanner = { switchTab(AppNavScreen.PLANNER) },
                     onNavigateToDetail = { plan ->
                         selectedRoutePlan = plan
                         viewModel.selectRoute(plan)
                         navigateTo(AppNavScreen.DETAIL)
                     },
-                    onNavigateToEmergency = { navigateTo(AppNavScreen.EMERGENCY) },
-                    onNavigateToChecklist = { navigateTo(AppNavScreen.CHECKLIST) },
-                    onNavigateToSaved = { navigateTo(AppNavScreen.SAVED) }
+                    onNavigateToEmergency = { switchTab(AppNavScreen.EMERGENCY) },
+                    onNavigateToCarDetails = { navigateTo(AppNavScreen.CAR_DETAILS) },
+                    onNavigateToSaved = { switchTab(AppNavScreen.SAVED) },
+                    onNavigateToVehicleSetup = { navigateTo(AppNavScreen.VEHICLE_SETUP) }
                 )
             }
 
             AppNavScreen.PLANNER -> {
-                BackHandler { currentScreen = AppNavScreen.HOME }
+                BackHandler { switchTab(AppNavScreen.HOME) }
                 RoutePlannerScreen(
                     viewModel = viewModel,
-                    onNavigateBack = { currentScreen = AppNavScreen.HOME },
+                    onNavigateBack = { switchTab(AppNavScreen.HOME) },
                     onNavigateToDetail = { plan ->
                         selectedRoutePlan = plan
                         viewModel.selectRoute(plan)
                         navigateTo(AppNavScreen.DETAIL)
                     }
-                )
-            }
-
-            AppNavScreen.DETAIL -> {
-                BackHandler { currentScreen = previousScreen }
-                selectedRoutePlan?.let { plan ->
-                    RouteDetailScreen(
-                        plan = plan,
-                        viewModel = viewModel,
-                        onNavigateBack = { currentScreen = previousScreen }
-                    )
-                } ?: run {
-                    currentScreen = AppNavScreen.HOME
-                }
-            }
-
-            AppNavScreen.EMERGENCY -> {
-                BackHandler { currentScreen = AppNavScreen.HOME }
-                EmergencyHubScreen(
-                    onNavigateBack = { currentScreen = AppNavScreen.HOME }
-                )
-            }
-
-            AppNavScreen.CHECKLIST -> {
-                BackHandler { currentScreen = AppNavScreen.HOME }
-                VehicleChecklistScreen(
-                    viewModel = viewModel,
-                    onNavigateBack = { currentScreen = AppNavScreen.HOME }
                 )
             }
 
             AppNavScreen.SAVED -> {
-                BackHandler { currentScreen = AppNavScreen.HOME }
+                BackHandler { switchTab(AppNavScreen.HOME) }
                 SavedRoutesScreen(
                     viewModel = viewModel,
-                    onNavigateBack = { currentScreen = AppNavScreen.HOME },
+                    onNavigateBack = { switchTab(AppNavScreen.HOME) },
                     onNavigateToDetail = { plan ->
                         selectedRoutePlan = plan
                         viewModel.selectRoute(plan)
                         navigateTo(AppNavScreen.DETAIL)
                     }
                 )
+            }
+
+            AppNavScreen.EMERGENCY -> {
+                BackHandler { switchTab(AppNavScreen.HOME) }
+                EmergencyHubScreen(
+                    onNavigateBack = { switchTab(AppNavScreen.HOME) },
+                    viewModel = viewModel
+                )
+            }
+
+            AppNavScreen.SETTINGS -> {
+                BackHandler { switchTab(AppNavScreen.HOME) }
+                SettingsScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { switchTab(AppNavScreen.HOME) },
+                    onNavigateToCarDetails = { navigateTo(AppNavScreen.CAR_DETAILS) },
+                    onLogoutSuccess = {
+                        switchTab(AppNavScreen.HOME)
+                    },
+                    onNavigateToVehicleSetup = { navigateTo(AppNavScreen.VEHICLE_SETUP) }
+                )
+            }
+
+            AppNavScreen.CAR_DETAILS -> {
+                BackHandler { navigateBack() }
+                CarDetailsScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { navigateBack() },
+                    onNavigateToVehicleSetup = { navigateTo(AppNavScreen.VEHICLE_SETUP) }
+                )
+            }
+
+            AppNavScreen.VEHICLE_SETUP -> {
+                BackHandler { navigateBack() }
+                VehicleSetupScreen(
+                    viewModel = viewModel,
+                    onSetupComplete = { navigateBack() },
+                    onNavigateBack = { navigateBack() }
+                )
+            }
+
+            AppNavScreen.DETAIL -> {
+                BackHandler { navigateBack() }
+                val currentPlan = selectedRoutePlan ?: viewModel.currentRoute.collectAsState().value
+                if (currentPlan != null) {
+                    RouteDetailScreen(
+                        plan = currentPlan,
+                        viewModel = viewModel,
+                        onNavigateBack = { navigateBack() }
+                    )
+                } else {
+                    switchTab(AppNavScreen.HOME)
+                }
             }
         }
     }

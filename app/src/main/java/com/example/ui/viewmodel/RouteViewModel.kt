@@ -45,6 +45,15 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
     val carDetails: StateFlow<CarDetails> = sessionManager.carDetails
     val themeMode: StateFlow<AppThemeMode> = sessionManager.themeMode
 
+    val geminiApiKey: StateFlow<String> = sessionManager.geminiApiKey
+    val claudeApiKey: StateFlow<String> = sessionManager.claudeApiKey
+    val googlePlacesApiKey: StateFlow<String> = sessionManager.googlePlacesApiKey
+
+    fun updateApiKeys(gemini: String, claude: String, googlePlaces: String) {
+        sessionManager.updateApiKeys(gemini, claude, googlePlaces)
+        Toast.makeText(getApplication(), "API keys updated successfully!", Toast.LENGTH_SHORT).show()
+    }
+
     val curatedRoutes: List<SafeRoutePlan> = repository.getCuratedRoutes()
 
     val savedRoutes: StateFlow<List<SafeRoutePlan>> = repository.savedRoutes
@@ -62,6 +71,13 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _engineMode = MutableStateFlow(RoutingEngineMode.AUTO)
     val engineMode: StateFlow<RoutingEngineMode> = _engineMode.asStateFlow()
+
+    var lastNavigatedPlanId: String? = null
+
+    fun resetPlanState() {
+        _planUiState.value = PlanUiState.Idle
+        lastNavigatedPlanId = null
+    }
 
     fun setEngineMode(mode: RoutingEngineMode) {
         _engineMode.value = mode
@@ -84,6 +100,7 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
         notes: String = "",
         mode: RoutingEngineMode = _engineMode.value
     ) {
+        lastNavigatedPlanId = null
         if (origin.isBlank() || destination.isBlank()) {
             _planUiState.value = PlanUiState.Error("Please enter both origin and destination cities/places.")
             return
@@ -100,7 +117,15 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             _planUiState.value = PlanUiState.Loading
-            val result = repository.planSafeRoute(origin, destination, enhancedNotes, mode)
+            var algorithmPrompt = com.example.data.firebase.FirestoreService.fetchRoutingPrompt()
+            if (algorithmPrompt.isNullOrBlank()) {
+                algorithmPrompt = try {
+                    getApplication<android.app.Application>().assets.open("route.md").bufferedReader().use { it.readText() }
+                } catch (e: Exception) {
+                    ""
+                }
+            }
+            val result = repository.planSafeRoute(origin, destination, enhancedNotes, mode, algorithmPrompt)
             result.fold(
                 onSuccess = { plan ->
                     val user = userProfile.value
@@ -118,17 +143,40 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun resetPlanState() {
-        _planUiState.value = PlanUiState.Idle
-    }
-
     fun saveCurrentRoute() {
         val route = _currentRoute.value ?: return
         val user = userProfile.value
         val car = carDetails.value
         viewModelScope.launch {
             repository.saveRoute(route, userEmail = user.email, carModel = car.makeModel)
-            Toast.makeText(getApplication(), "Route saved to Google Account (${user.email})!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(getApplication(), "Route saved to Room & Cloud Firestore (${user.email})!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun syncWithCloud() {
+        val user = userProfile.value
+        viewModelScope.launch {
+            repository.syncRoutesWithCloud(user.email)
+            Toast.makeText(getApplication(), "Trips synced with cloud!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun saveVerifiedParkingPin(name: String, city: String, mapLink: String, type: String = "Secure Covered Parking") {
+        val user = userProfile.value
+        viewModelScope.launch {
+            val pin = com.example.data.firebase.CloudParkingPin(
+                name = name,
+                city = city,
+                locationType = type,
+                mapLink = mapLink,
+                verifiedBy = user.email
+            )
+            val success = com.example.data.firebase.FirestoreService.saveParkingPin(pin)
+            if (success) {
+                Toast.makeText(getApplication(), "Parking pin synced to Cloud Firestore!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(getApplication(), "Saved locally (Cloud offline)", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -140,9 +188,17 @@ class RouteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun signInWithGoogle(email: String, name: String, car: CarDetails) {
-        sessionManager.signInWithGoogle(email, name, car)
-        Toast.makeText(getApplication(), "Signed in as $email. Car details saved!", Toast.LENGTH_SHORT).show()
+    fun signInWithGoogle(email: String, name: String, car: CarDetails? = null, markSetupComplete: Boolean = false) {
+        sessionManager.signInWithGoogle(email, name, car, markSetupComplete = markSetupComplete)
+        viewModelScope.launch {
+            repository.syncRoutesWithCloud(email)
+        }
+        Toast.makeText(getApplication(), "Signed in as $email.", Toast.LENGTH_SHORT).show()
+    }
+
+    fun completeVehicleSetup(car: CarDetails) {
+        sessionManager.completeVehicleSetup(car)
+        Toast.makeText(getApplication(), "Configured for ${car.makeModel} with SOS protocols!", Toast.LENGTH_SHORT).show()
     }
 
     fun signOut() {

@@ -29,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,23 +51,26 @@ import com.example.ui.theme.NLineRedAccent
 
 @Composable
 fun EmergencyQuickCallList(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rsaTitle: String = "24x7 Roadside Assistance (RSA)",
+    rsaPhone: String = "1800 209 8282"
 ) {
     val context = LocalContext.current
+    val cleanRsa = rsaPhone.replace(" ", "")
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         EmergencyContactRow(
-            title = "Hyundai Roadside Assistance",
-            subtitle = "Fuel up to 5L, puncture & tow to nearest workshop",
-            number = "1800 102 4645",
-            rawDialNumber = "18001024645",
+            title = rsaTitle,
+            subtitle = "Flatbed tow, tyre puncture, fuel delivery & battery assist",
+            number = rsaPhone,
+            rawDialNumber = cleanRsa,
             icon = Icons.Default.Build,
             accentColor = NLineBluePrimary,
-            tag = "call_hyundai_rsa"
-        ) { dialPhone(context, "18001024645") }
+            tag = "call_vehicle_rsa"
+        ) { dialPhone(context, cleanRsa) }
 
         EmergencyContactRow(
             title = "Highway Blocked / Crash (NHAI)",
@@ -201,6 +205,7 @@ private fun EmergencyContactRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EmergencyMiniCard(
     title: String,
@@ -210,34 +215,39 @@ private fun EmergencyMiniCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .testTag("emergency_mini_$number"),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(12.dp)
+    Card(
+        onClick = onClick,
+        modifier = modifier.testTag("emergency_mini_$number"),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 14.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
                 tint = color,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(24.dp)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = number,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Black,
                 color = color
             )
         }

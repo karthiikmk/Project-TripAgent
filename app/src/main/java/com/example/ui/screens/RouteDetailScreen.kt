@@ -3,6 +3,7 @@ package com.example.ui.screens
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -36,7 +37,10 @@ import androidx.compose.material.icons.filled.LocalParking
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Toll
+import androidx.compose.material.icons.filled.TripOrigin
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +50,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import com.example.ui.components.HighwayChipsRow
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -68,7 +73,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.SafeRoutePlan
-import com.example.ui.components.BluelinkMirrorWidget
 import com.example.ui.components.dialPhone
 import com.example.ui.theme.HighwayGreen
 import com.example.ui.theme.NLineBluePrimary
@@ -82,9 +86,10 @@ fun RouteDetailScreen(
     viewModel: RouteViewModel,
     onNavigateBack: () -> Unit
 ) {
+    BackHandler { onNavigateBack() }
     val context = LocalContext.current
-    val savedRoutes by viewModel.savedRoutes.collectAsState()
     val carDetails by viewModel.carDetails.collectAsState()
+    val savedRoutes by viewModel.savedRoutes.collectAsState()
     val isSaved = savedRoutes.any { it.title == plan.title || it.id == plan.id }
 
     Scaffold(
@@ -292,29 +297,14 @@ fun RouteDetailScreen(
                         )
 
                         // Verify line
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = HighwayGreen.copy(alpha = 0.12f)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = HighwayGreen,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = plan.verifyLine,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
+                        HighwayChipsRow(
+                            verifyLine = plan.verifyLine,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(10.dp)
+                        )
                     }
                 }
             }
@@ -363,43 +353,39 @@ fun RouteDetailScreen(
             // 🆘 SECTION 4: EMERGENCY
             item {
                 SectionCard(
-                    title = "🆘 Emergency",
-                    subtitle = "Hyundai i20 N Line Bluelink & Highway Assistance"
+                    title = "🆘 Emergency Protocol",
+                    subtitle = "${carDetails.makeModel} Highway Emergency & RSA"
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // Mirror Diagram in Detail Screen
-                        BluelinkMirrorWidget()
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
+                        // In-car hardware instruction
                         EmergencyActionRow(
-                            label = "Car, breakdown, flat tyre, battery, or no fuel",
-                            action = "RSA button, middle button on the rear-view mirror"
+                            label = "In-Car Hardware SOS Guide",
+                            action = carDetails.sosButtonInstruction
                         )
 
                         EmergencyActionRow(
-                            label = "Car, accident or injury",
-                            action = "SOS button, left button on the rear-view mirror"
+                            label = "Vehicle Breakdown / Flat Tyre / Battery",
+                            action = "Call ${carDetails.makeModel} RSA Hotline: ${carDetails.oemRsaPhone}"
                         )
 
                         EmergencyDialRow(
-                            label = "Hyundai tow or fuel",
-                            number = "1800 102 4645",
-                            subText = "Fuel up to 5L & tow to nearest workshop while covered",
+                            label = "${carDetails.makeModel} 24x7 Roadside Assistance",
+                            number = carDetails.oemRsaPhone,
+                            subText = "Dedicated OEM towing, fuel delivery & tyre assistance",
                             accentColor = NLineBluePrimary
-                        ) { dialPhone(context, "18001024645") }
+                        ) { dialPhone(context, carDetails.oemRsaPhone.replace(" ", "")) }
 
                         EmergencyDialRow(
-                            label = "Highway blocked or crash",
+                            label = "NHAI Highway Patrol (Pan-India)",
                             number = "1033",
-                            subText = "NHAI 24x7 highway patrol & tow crane",
+                            subText = "24x7 National Highway ambulance, crane & patrol",
                             accentColor = HighwayGreen
                         ) { dialPhone(context, "1033") }
 
                         EmergencyDialRow(
-                            label = "Any emergency",
+                            label = "Any Emergency / Police / Medical",
                             number = "112",
-                            subText = "Unified National Helpline",
+                            subText = "Unified National Emergency Helpline",
                             accentColor = NLineRedAccent
                         ) { dialPhone(context, "112") }
 
@@ -463,45 +449,73 @@ private fun RoutePointRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(10.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(
-                    when {
-                        isStart -> NLineBluePrimary
-                        isDestination -> NLineRedAccent
-                        else -> HighwayGreen
-                    }
-                ),
-            contentAlignment = Alignment.Center
+        Surface(
+            shape = CircleShape,
+            color = when {
+                isStart -> NLineBluePrimary
+                isDestination -> NLineRedAccent
+                else -> HighwayGreen
+            },
+            modifier = Modifier.size(28.dp)
         ) {
-            Text(
-                text = when {
-                    isStart -> "S"
-                    isDestination -> "D"
-                    else -> "•"
-                },
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = when {
+                        isStart -> "S"
+                        isDestination -> "D"
+                        else -> "T"
+                    },
+                    color = Color.White,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 12.sp
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.width(10.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = when {
+                        isStart -> NLineBluePrimary.copy(alpha = 0.12f)
+                        isDestination -> NLineRedAccent.copy(alpha = 0.12f)
+                        else -> HighwayGreen.copy(alpha = 0.12f)
+                    }
+                ) {
+                    Text(
+                        text = when {
+                            isStart -> "START (S)"
+                            isDestination -> "DESTINATION (D)"
+                            else -> "TOLL PIN (STOP)"
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            isStart -> NLineBluePrimary
+                            isDestination -> NLineRedAccent
+                            else -> HighwayGreen
+                        },
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontSize = 10.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Spacer(modifier = Modifier.height(3.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (road.isNotBlank()) {

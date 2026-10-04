@@ -68,7 +68,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AppThemeMode
 import com.example.data.model.CarDetails
-import com.example.ui.components.BluelinkMirrorWidget
 import com.example.ui.components.GoogleSignInDialog
 import com.example.ui.theme.HighwayGreen
 import com.example.ui.theme.NLineBluePrimary
@@ -337,13 +336,18 @@ fun VehicleChecklistScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Google Account Linked Indicator & Edit Button
+                        // Google Account Linked Indicator & Actions
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clickable { showEditCarDialog = true }
+                                    .weight(1f)
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.AccountCircle,
                                     contentDescription = null,
@@ -352,35 +356,42 @@ fun VehicleChecklistScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = if (userProfile.isLoggedIn) "Linked: ${userProfile.email}" else "Guest Mode",
+                                    text = if (userProfile.isLoggedIn) "Linked: ${userProfile.email}" else "Guest Mode (Tap to login)",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    fontSize = 11.sp
+                                    fontSize = 11.sp,
+                                    maxLines = 1
                                 )
                             }
 
-                            Button(
-                                onClick = { showEditCarDialog = true },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Edit",
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Edit Car", fontSize = 11.sp)
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                OutlinedButton(
+                                    onClick = { showEditCarDialog = true },
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text("Switch Account", fontSize = 10.sp)
+                                }
+
+                                Button(
+                                    onClick = { showEditCarDialog = true },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    modifier = Modifier.testTag("vehicle_tab_pick_car_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DirectionsCar,
+                                        contentDescription = "Pick Car",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Pick Car", fontSize = 11.sp)
+                                }
                             }
                         }
                     }
                 }
-            }
-
-            // Bluelink Mirror Widget
-            item {
-                BluelinkMirrorWidget()
             }
 
             // Checklist Header
@@ -487,6 +498,9 @@ fun VehicleChecklistScreen(
             onSignInSuccess = { email, name, updatedCar ->
                 viewModel.signInWithGoogle(email, name, updatedCar)
                 showEditCarDialog = false
+            },
+            onSignOut = {
+                viewModel.signOut()
             }
         )
     }

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "SafeRoute India"
+rootProject.name = "SafeTrip"
 
 include(":app")
