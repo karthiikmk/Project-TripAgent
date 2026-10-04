@@ -4,12 +4,15 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +26,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -50,6 +55,7 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import com.example.ui.components.EmergencyQuickCallList
 import com.example.ui.components.HighwayChipsRow
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -290,24 +296,11 @@ fun RouteDetailScreen(
                             isPassThrough = false,
                             isDestination = true
                         )
-
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-                        )
-
-                        // Verify line
-                        HighwayChipsRow(
-                            verifyLine = plan.verifyLine,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                .padding(10.dp)
-                        )
                     }
                 }
             }
+
+            item { CenteredSectionDivider() }
 
             // 📝 SECTION 2: TIPS
             item {
@@ -323,6 +316,8 @@ fun RouteDetailScreen(
                     }
                 }
             }
+
+            item { CenteredSectionDivider() }
 
             // 🅿️ SECTION 3: PARKING
             item {
@@ -350,54 +345,18 @@ fun RouteDetailScreen(
                 }
             }
 
+            item { CenteredSectionDivider() }
+
             // 🆘 SECTION 4: EMERGENCY
             item {
                 SectionCard(
                     title = "🆘 Emergency Protocol",
-                    subtitle = "${carDetails.makeModel} Highway Emergency & RSA"
+                    subtitle = "One-Tap Highway Helpline & RSA Dialers"
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // In-car hardware instruction
-                        EmergencyActionRow(
-                            label = "In-Car Hardware SOS Guide",
-                            action = carDetails.sosButtonInstruction
-                        )
-
-                        EmergencyActionRow(
-                            label = "Vehicle Breakdown / Flat Tyre / Battery",
-                            action = "Call ${carDetails.makeModel} RSA Hotline: ${carDetails.oemRsaPhone}"
-                        )
-
-                        EmergencyDialRow(
-                            label = "${carDetails.makeModel} 24x7 Roadside Assistance",
-                            number = carDetails.oemRsaPhone,
-                            subText = "Dedicated OEM towing, fuel delivery & tyre assistance",
-                            accentColor = NLineBluePrimary
-                        ) { dialPhone(context, carDetails.oemRsaPhone.replace(" ", "")) }
-
-                        EmergencyDialRow(
-                            label = "NHAI Highway Patrol (Pan-India)",
-                            number = "1033",
-                            subText = "24x7 National Highway ambulance, crane & patrol",
-                            accentColor = HighwayGreen
-                        ) { dialPhone(context, "1033") }
-
-                        EmergencyDialRow(
-                            label = "Any Emergency / Police / Medical",
-                            number = "112",
-                            subText = "Unified National Emergency Helpline",
-                            accentColor = NLineRedAccent
-                        ) { dialPhone(context, "112") }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            EmergencyMiniBtn(title = "Police: 100") { dialPhone(context, "100") }
-                            EmergencyMiniBtn(title = "Ambulance: 108") { dialPhone(context, "108") }
-                            EmergencyMiniBtn(title = "Fire: 101") { dialPhone(context, "101") }
-                        }
-                    }
+                    EmergencyQuickCallList(
+                        rsaTitle = "24x7 Roadside Assistance",
+                        rsaPhone = carDetails.oemRsaPhone
+                    )
                 }
             }
         }
@@ -437,6 +396,52 @@ private fun SectionCard(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RoadTextWithChips(road: String) {
+    val tokens = road.split(" ").map { it.trim() }.filter { it.isNotBlank() }
+    
+    FlowRow(
+        verticalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.padding(start = 6.dp)
+    ) {
+        tokens.forEach { token ->
+            val isHighway = token.startsWith("NH", ignoreCase = true) ||
+                             token.startsWith("SH", ignoreCase = true) ||
+                             token.startsWith("NE", ignoreCase = true) ||
+                             token.startsWith("AH", ignoreCase = true) ||
+                             token.startsWith("NICE", ignoreCase = true) ||
+                             token.any { it.isDigit() }
+                             
+            if (isHighway) {
+                Surface(
+                    color = Color(0xFFF59E0B), // Vibrant yellow/orange like Google Maps highway shields
+                    shape = RoundedCornerShape(4.dp),
+                    modifier = Modifier.padding(vertical = 1.dp)
+                ) {
+                    Text(
+                        text = token,
+                        color = Color.Black,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontSize = 9.sp
+                    )
+                }
+            } else {
+                Text(
+                    text = token,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun RoutePointRow(
     label: String,
@@ -452,8 +457,9 @@ private fun RoutePointRow(
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surface)
             .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
+        // Circular Indicator
         Surface(
             shape = CircleShape,
             color = when {
@@ -461,7 +467,9 @@ private fun RoutePointRow(
                 isDestination -> NLineRedAccent
                 else -> HighwayGreen
             },
-            modifier = Modifier.size(28.dp)
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .size(28.dp)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
@@ -480,61 +488,46 @@ private fun RoutePointRow(
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = when {
-                        isStart -> NLineBluePrimary.copy(alpha = 0.12f)
-                        isDestination -> NLineRedAccent.copy(alpha = 0.12f)
-                        else -> HighwayGreen.copy(alpha = 0.12f)
-                    }
-                ) {
-                    Text(
-                        text = when {
-                            isStart -> "START (S)"
-                            isDestination -> "DESTINATION (D)"
-                            else -> "TOLL PIN (STOP)"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            isStart -> NLineBluePrimary
-                            isDestination -> NLineRedAccent
-                            else -> HighwayGreen
-                        },
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        fontSize = 10.sp
-                    )
-                }
-                Spacer(modifier = Modifier.width(6.dp))
+            // Line 1: Badge / Label
+            Surface(
+                shape = RoundedCornerShape(4.dp),
+                color = when {
+                    isStart -> NLineBluePrimary.copy(alpha = 0.12f)
+                    isDestination -> NLineRedAccent.copy(alpha = 0.12f)
+                    else -> HighwayGreen.copy(alpha = 0.12f)
+                },
+                modifier = Modifier.padding(bottom = 4.dp)
+            ) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = when {
+                        isStart -> "START (S)"
+                        isDestination -> "DESTINATION (D)"
+                        else -> "TOLL PIN (STOP)"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        isStart -> NLineBluePrimary
+                        isDestination -> NLineRedAccent
+                        else -> HighwayGreen
+                    },
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    fontSize = 10.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(3.dp))
+            // Line 2: Title / Location Name
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(start = 6.dp, bottom = 3.dp)
+            )
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (road.isNotBlank()) {
-                    Text(
-                        text = road,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                if (isPassThrough) {
-                    Text(
-                        text = " → pass-through, pay and continue",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = HighwayGreen,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            // Line 3: Road/Highway Name rendered with automatic yellow Chips!
+            if (road.isNotBlank()) {
+                RoadTextWithChips(road = road)
             }
         }
     }
@@ -718,6 +711,22 @@ private fun EmergencyMiniBtn(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+@Composable
+private fun CenteredSectionDivider() {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        HorizontalDivider(
+            modifier = Modifier
+                .width(80.dp)
+                .padding(vertical = 4.dp),
+            thickness = 2.dp,
+            color = Color.LightGray
         )
     }
 }

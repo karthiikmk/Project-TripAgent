@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -74,6 +75,7 @@ import com.example.R
 import com.example.data.model.AppThemeMode
 import com.example.data.model.SafeRoutePlan
 import com.example.ui.components.HighwayChipsRow
+import com.example.ui.components.TripCard
 import com.example.ui.theme.HighwayGreen
 import com.example.ui.theme.NLineBluePrimary
 import com.example.ui.theme.NLineRedAccent
@@ -228,31 +230,15 @@ fun HomeScreen(
                         .align(Alignment.BottomStart)
                         .padding(16.dp)
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    ) {
-                        Text(
-                            text = carDetails.makeModel.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            letterSpacing = 1.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
                     Text(
-                        text = "Safe Trip Routes Across India",
+                        text = "Safe trip routes across india",
                         style = MaterialTheme.typography.headlineSmall,
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "The safest good road, not the shortest. Distance and duration do not matter.",
+                        text = "We choose the safest road, not the shortest.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFE2E8F0)
                     )
@@ -260,69 +246,59 @@ fun HomeScreen(
             }
         }
 
-        // Dedicated Active Vehicle Card (Tapping opens specs & checklist)
+        // Quick Tools Row (Balanced 2-action row with zero wrapping) beneath the image
         item {
-            Card(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clickable { onNavigateToCarDetails() }
-                    .testTag("home_vehicle_card"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Row(
+                OutlinedButton(
+                    onClick = onNavigateToEmergency,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .weight(1f)
+                        .height(46.dp)
+                        .testTag("home_emergency_button"),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.DirectionsCar,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = carDetails.makeModel,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "${carDetails.registrationNumber} • ${carDetails.variant}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Tyres: ${carDetails.tyreSpecification} • ${carDetails.recommendedPsi}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = HighwayGreen,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = "View Checklist & Specs",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.Shield,
+                        contentDescription = "Emergency Hub",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "1033 SOS Hub",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onNavigateToSaved,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .testTag("home_saved_button"),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Saved Trips",
+                        tint = HighwayGreen,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Saved Trips (${savedRoutes.size})",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
             }
@@ -333,7 +309,7 @@ fun HomeScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
                     .testTag("plan_new_trip_card"),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
@@ -395,106 +371,136 @@ fun HomeScreen(
             }
         }
 
-        // Quick Tools Row (Balanced 2-action row with zero wrapping)
+        // Dedicated Active Vehicle Card (Tapping opens specs & checklist)
         item {
-            Row(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clickable { onNavigateToCarDetails() }
+                    .testTag("home_vehicle_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
-                OutlinedButton(
-                    onClick = onNavigateToEmergency,
+                Row(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(46.dp)
-                        .testTag("home_emergency_button"),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = "Emergency Hub",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "1033 SOS Hub",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                }
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.DirectionsCar,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = carDetails.makeModel,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "${carDetails.registrationNumber} • ${carDetails.variant}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Tyres: ${carDetails.tyreSpecification} • ${carDetails.recommendedPsi}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
 
-                OutlinedButton(
-                    onClick = onNavigateToSaved,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(46.dp)
-                        .testTag("home_saved_button"),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                ) {
                     Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "Saved Trips",
-                        tint = HighwayGreen,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Saved Trips (${savedRoutes.size})",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "View Checklist & Specs",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
         }
 
-        // Your Last Trip Card (Boxed with header inside)
+        // Your Last Trip Section (Uses a premium rounded box with surfaceVariant background color)
         item {
             val lastTrip = savedRoutes.firstOrNull() ?: curatedRoutes.firstOrNull()
             if (lastTrip != null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                         .clickable { onNavigateToDetail(lastTrip) }
-                        .testTag("home_last_trip_card"),
-                    shape = RoundedCornerShape(14.dp),
+                        .testTag("home_last_trip_blue_card"),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "YOUR LAST TRIP",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = HighwayGreen,
-                            letterSpacing = 0.5.sp
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = "Recent History",
+                                tint = MaterialTheme.colorScheme.primary, // Gorgeous blue highlight icon
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "YOUR LAST TRIP",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
                             text = lastTrip.title,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Text(
+                            text = "${lastTrip.origin} → ${lastTrip.destination}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                            fontWeight = FontWeight.SemiBold
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = "${lastTrip.origin} → ${lastTrip.destination}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
+                            text = lastTrip.distanceApprox,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Bold
                         )
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         HighwayChipsRow(verifyLine = lastTrip.verifyLine)
                     }
@@ -504,38 +510,80 @@ fun HomeScreen(
 
         // Highway Safety Principles Card (Boxed with header inside)
         item {
+            val isDark = MaterialTheme.colorScheme.background == Color(0xFF0B131F) // Deep DarkAsphalt background
+            val safetyBgColor = if (isDark) Color(0xFF042F1A) else Color(0xFFE6F4EA)
+            val safetyTitleColor = if (isDark) Color(0xFF34D399) else Color(0xFF065F46)
+            val safetyBulletTextColor = if (isDark) Color(0xFFD1FAE5) else Color(0xFF064E3B)
+            val safetyBulletIconColor = if (isDark) Color(0xFF34D399) else Color(0xFF059669)
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(12.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = safetyBgColor
                 )
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "SAFE HIGHWAY RULES ENFORCED",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
-                        color = HighwayGreen,
+                        color = safetyTitleColor,
                         letterSpacing = 0.5.sp
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    SafetyRuleBullet(text = "1. Access-controlled expressways & divided 4/6-lane NH first")
-                    SafetyRuleBullet(text = "2. Median barriers strictly required — oncoming trucks eliminated")
-                    SafetyRuleBullet(text = "3. Town crossings bypassed via flyovers or service roads")
-                    SafetyRuleBullet(text = "4. Verified toll plaza pins lock Maps on main carriageway")
-                    SafetyRuleBullet(text = "5. Village roads, market cuts & unmarked ghat shortcuts rejected")
+                    SafetyRuleBullet(
+                        text = "Access-controlled expressways & divided 4/6-lane NH first",
+                        textColor = safetyBulletTextColor,
+                        iconColor = safetyBulletIconColor
+                    )
+                    SafetyRuleBullet(
+                        text = "Median barriers strictly required — oncoming trucks eliminated",
+                        textColor = safetyBulletTextColor,
+                        iconColor = safetyBulletIconColor
+                    )
+                    SafetyRuleBullet(
+                        text = "Town crossings bypassed via flyovers or service roads",
+                        textColor = safetyBulletTextColor,
+                        iconColor = safetyBulletIconColor
+                    )
+                    SafetyRuleBullet(
+                        text = "Verified toll plaza pins lock Maps on main carriageway",
+                        textColor = safetyBulletTextColor,
+                        iconColor = safetyBulletIconColor
+                    )
+                    SafetyRuleBullet(
+                        text = "Village roads, market cuts & unmarked ghat shortcuts rejected",
+                        textColor = safetyBulletTextColor,
+                        iconColor = safetyBulletIconColor
+                    )
                 }
+            }
+        }
+
+        // Small centered divider between Safety box and Audited Corridors section - Light Gray!
+        item {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .padding(vertical = 16.dp),
+                    thickness = 2.dp,
+                    color = Color.LightGray
+                )
             }
         }
 
         // Section Title & Filters
         item {
-            Column(modifier = Modifier.padding(start = 32.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)) {
+            Column(modifier = Modifier.padding(start = 32.dp, end = 16.dp, top = 10.dp, bottom = 2.dp)) {
                 Text(
                     text = "Audited Indian Highway Corridors",
                     style = MaterialTheme.typography.titleLarge,
@@ -547,7 +595,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -572,7 +620,7 @@ fun HomeScreen(
 
         // Corridors List
         items(filteredRoutes) { route ->
-            CorridorCard(
+            TripCard(
                 route = route,
                 onClick = { onNavigateToDetail(route) }
             )
@@ -581,7 +629,11 @@ fun HomeScreen(
 }
 
 @Composable
-private fun SafetyRuleBullet(text: String) {
+private fun SafetyRuleBullet(
+    text: String,
+    textColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    iconColor: Color = HighwayGreen
+) {
     Row(
         modifier = Modifier.padding(vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -589,93 +641,14 @@ private fun SafetyRuleBullet(text: String) {
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
-            tint = HighwayGreen,
+            tint = iconColor,
             modifier = Modifier.size(14.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = textColor
         )
-    }
-}
-
-@Composable
-private fun CorridorCard(
-    route: SafeRoutePlan,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clickable { onClick() }
-            .testTag("corridor_card_${route.id}"),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = route.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "View",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "${route.origin} → ${route.destination}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = route.distanceApprox,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Highways Tag
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                route.primaryRoads.forEach { road ->
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Text(
-                            text = road,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        }
     }
 }

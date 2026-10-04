@@ -24,25 +24,42 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun HighwayChipsRow(verifyLine: String, modifier: Modifier = Modifier) {
+fun HighwayChipsRow(
+    verifyLine: String, 
+    modifier: Modifier = Modifier,
+    showCheckmarkChips: Boolean = false
+) {
+    // Purge any leading checkmarks completely from the verifyLine text for a clean look
+    val cleanLine = if (verifyLine.startsWith("✅")) verifyLine.substringAfter("✅").trim() else verifyLine
+
     val marker = "Road numbers used:"
-    if (verifyLine.contains(marker, ignoreCase = true)) {
-        val parts = verifyLine.split(marker, ignoreCase = true)
-        val prefix = parts.firstOrNull()?.trim() ?: "✅"
+    if (cleanLine.contains(marker, ignoreCase = true)) {
+        val parts = cleanLine.split(marker, ignoreCase = true)
+        val prefix = parts.firstOrNull()?.trim() ?: ""
         val cleanPrefix = if (prefix.startsWith("- ")) prefix.substringAfter("- ").trim() else prefix
         val highwayPart = parts.getOrNull(1)?.trim() ?: ""
         
-        // Strip trailing period or non-alphanumeric trailing chars from the highway parts
-        val cleanHighways = highwayPart.removeSuffix(".").trim()
+        // Extract road tokens only before the first period (excluding long descriptions)
+        val beforePeriod = highwayPart.substringBefore(".")
         
-        // Split by comma or space to get the individual shields
-        val highwayTokens = cleanHighways.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        // Split by comma to get the individual highway numbers
+        val highwayTokens = beforePeriod.split(",").map { it.trim() }.filter { it.isNotBlank() }
         
         Row(
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
+            if (!showCheckmarkChips && cleanPrefix.isNotBlank()) {
+                Text(
+                    text = cleanPrefix,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+            }
             FlowRow(
                 verticalArrangement = Arrangement.Center,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -51,14 +68,50 @@ fun HighwayChipsRow(verifyLine: String, modifier: Modifier = Modifier) {
                     Surface(
                         color = Color(0xFFF59E0B), // Vibrant yellow/orange like Google Maps highway shields
                         shape = RoundedCornerShape(4.dp),
-                        modifier = Modifier.testTag("highway_chip_$token")
+                        modifier = Modifier
+                            .padding(vertical = 2.dp)
+                            .testTag("highway_chip_$token")
                     ) {
                         Text(
                             text = token,
                             color = Color.Black,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Black,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+        }
+    } else if (showCheckmarkChips) {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            FlowRow(
+                verticalArrangement = Arrangement.Center,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                val roadTokens = cleanLine.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                
+                roadTokens.forEach { token ->
+                    Surface(
+                        color = Color(0xFFF59E0B), // Vibrant yellow/orange like Google Maps highway shields
+                        shape = RoundedCornerShape(4.dp),
+                        modifier = Modifier
+                            .padding(vertical = 2.dp)
+                            .testTag("highway_chip_$token")
+                    ) {
+                        Text(
+                            text = token,
+                            color = Color.Black,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             fontSize = 10.sp
                         )
                     }
@@ -67,10 +120,10 @@ fun HighwayChipsRow(verifyLine: String, modifier: Modifier = Modifier) {
         }
     } else {
         Text(
-            text = verifyLine,
+            text = cleanLine,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = modifier
+            modifier = modifier.padding(vertical = 4.dp)
         )
     }
 }

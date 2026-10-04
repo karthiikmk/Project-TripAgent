@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.SafeRoutePlan
 import com.example.ui.components.HighwayChipsRow
+import com.example.ui.components.TripCard
 import com.example.ui.theme.HighwayGreen
 import com.example.ui.theme.NLineBluePrimary
 import com.example.ui.theme.NLineRedAccent
@@ -273,55 +274,12 @@ fun SavedRoutesScreen(
                 }
             } else {
                 items(savedRoutes) { route ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToDetail(route) }
-                            .testTag("saved_trip_card_${route.id}"),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = route.title,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                IconButton(
-                                    onClick = { viewModel.deleteSavedRoute(route.id) },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        tint = NLineRedAccent,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Text(
-                                text = "${route.origin} → ${route.destination}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            HighwayChipsRow(verifyLine = route.verifyLine)
-                        }
-                    }
+                    TripCard(
+                        route = route,
+                        onClick = { onNavigateToDetail(route) },
+                        onDeleteClick = { viewModel.deleteSavedRoute(route.id) },
+                        modifier = Modifier.padding(horizontal = 0.dp, vertical = 2.dp)
+                    )
                 }
             }
         }
