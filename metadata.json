@@ -1,0 +1,6 @@
+{
+  "name": "SafeRoute India",
+  "description": "Safe Car Route Planner across India for Hyundai i20 N Line with Bluelink, prioritizing divided expressways, verified pins, parking, and emergency assistance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
